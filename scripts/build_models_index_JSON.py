@@ -4,13 +4,13 @@
 """
 build_models_index.py
 
-扫描 models 目录下的 .ply 文件，生成一个 index.json，
-用于 web viewer 显示有哪些可选的点云模型。
+Scan .ply files in models directory, generate an index.json,
+used for web viewer to display available point cloud models.
 
-默认目录：
+Default directory:
   /data1_ycao/chua/projects/cdTeacher/web-viewer/models
 
-也可以通过 --models-dir 手动指定。
+Can also be manually specified via --models-dir.
 """
 
 import os
@@ -24,9 +24,9 @@ DEFAULT_MODELS_DIR = "/data1_ycao/chua/projects/cdTeacher/web-viewer/models"
 
 def parse_model_filename(filename: str):
     """
-    根据文件名推断 seq / kind / alpha 等信息。
+    Infer seq / kind / alpha etc. from filename.
 
-    约定：
+    Convention:
       <seq>_gt_full.ply
       <seq>_nerf_rawdepth_alpha0.10m.ply
     """

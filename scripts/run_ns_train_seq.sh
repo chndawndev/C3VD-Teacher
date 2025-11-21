@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # run_ns_train_seq.sh
 #
-# 用法示例：
+# Usage example:
 #   ./scripts/run_ns_train_seq.sh c2_ascending_t1_v1 1 30000
 
 set -e

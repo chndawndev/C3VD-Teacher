@@ -3,10 +3,13 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { PLYLoader } from "three/addons/loaders/PLYLoader.js";
 
-// 基本场景
+// Basic scene
 const container = document.getElementById("viewer-container");
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x050608);
+scene.background = new THREE.Color(0x1e2330); // CAD-like dark blue
+
+const gridHelper = new THREE.GridHelper(10, 20, 0x506070, 0x2a3040);
+scene.add(gridHelper);
 
 const camera = new THREE.PerspectiveCamera(
   45,
@@ -34,7 +37,7 @@ scene.add(dirLight);
 
 const loader = new PLYLoader();
 
-// 当前加载的模型
+// Currently loaded model
 let currentPoints = null;
 let bboxGlobal = new THREE.Box3();
 let bboxInitialized = false;
@@ -75,7 +78,7 @@ function createPointsFromGeometry(geometry) {
 
   const material = new THREE.PointsMaterial({
     size: 0.0015,
-    color: new THREE.Color(0xffb020),
+    color: new THREE.Color(0x99aabb),
     transparent: true,
     opacity: 0.9,
   });
@@ -104,7 +107,7 @@ function loadModel(filename) {
   loader.load(
     fullPath,
     (geometry) => {
-      geometry.center(); // 让模型在原点附近
+      geometry.center(); // Center the model near the origin
       currentPoints = createPointsFromGeometry(geometry);
       scene.add(currentPoints);
       updateCameraToFitBox();
@@ -117,7 +120,7 @@ function loadModel(filename) {
   );
 }
 
-// 从 index.json 读取文件列表，填充下拉框
+// Read file list from index.json and populate the dropdown
 async function initModelList() {
   console.log("Initializing model list...");
   const select = document.getElementById("model-select");
@@ -138,7 +141,7 @@ async function initModelList() {
       return;
     }
 
-    // 默认插入一个“请选择”
+    // Insert a "Please select" option by default
     const opt0 = document.createElement("option");
     opt0.value = "";
     opt0.textContent = "-- select a PLY model --";
@@ -151,7 +154,7 @@ async function initModelList() {
       select.appendChild(opt);
     }
 
-    // 当选择变化时加载模型
+    // Load model when selection changes
     select.addEventListener("change", () => {
       const fname = select.value;
       if (fname) {
@@ -159,7 +162,7 @@ async function initModelList() {
       }
     });
 
-    // 也可以默认选择第一个模型：
+    // Optionally select the first model by default:
     // select.value = files[0];
     // loadModel(files[0]);
   } catch (e) {
@@ -174,7 +177,7 @@ async function initModelList() {
 
 initModelList();
 
-// 自适应窗口
+// Handle window resize
 window.addEventListener("resize", () => {
   const w = window.innerWidth;
   const h = window.innerHeight;
@@ -183,7 +186,7 @@ window.addEventListener("resize", () => {
   renderer.setSize(w, h);
 });
 
-// 渲染循环
+// Render loop
 function animate() {
   requestAnimationFrame(animate);
   controls.update();

@@ -3,7 +3,7 @@
 """
 c3vd_stageA_undistort_and_transforms.py
 
-用法示例：
+Usage example:
     python c3vd_stageA_undistort_and_transforms.py --seq c1_descending_t2_v2
 """
 
@@ -19,7 +19,7 @@ from tqdm import tqdm
 
 
 # -------------------------
-# 相机内参（跟 notebook 完全一致）
+# Camera intrinsics (consistent with notebook)
 # -------------------------
 
 OMNI_INTRINSICS = {
@@ -41,9 +41,9 @@ OMNI_INTRINSICS = {
 class OmniCamera(torch.nn.Module):
     """
     Scaramuzza-style omnidirectional camera (pixel -> ray in camera frame).
-    坐标系约定:
-      - 像素: u 向右, v 向下
-      - 相机系: +x 向右, +y 向下, +z 沿视线方向
+    Coordinate system convention:
+      - Pixel: u right, v down
+      - Camera frame: +x right, +y down, +z along view direction
     """
 
     def __init__(self, intrinsics):

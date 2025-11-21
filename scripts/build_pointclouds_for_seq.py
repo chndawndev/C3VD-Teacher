@@ -4,13 +4,13 @@
 """
 build_pointclouds_for_seq.py
 
-给定一个 C3VDv2 序列名 seq：
-  1. 直接从 GT (fisheye depth + pose.txt) 构建完整 GT 点云
+Given a C3VDv2 sequence name seq:
+  1. Build full GT point cloud directly from GT (fisheye depth + pose.txt)
        -> web-viewer/models/<seq>_gt_full.ply
-  2. 从 Nerfstudio 渲染的 raw-depth (train+test) 构建 NeRF 点云
-       -> web-viewer/models/<seq>_nerf_rawdepth_alpha0.10m.ply   (alpha 可改)
+  2. Build NeRF point cloud from Nerfstudio rendered raw-depth (train+test)
+       -> web-viewer/models/<seq>_nerf_rawdepth_alpha0.10m.ply   (alpha can be changed)
 
-用法示例：
+Usage example:
   python build_pointclouds_for_seq.py c1_descending_t2_v2
   python build_pointclouds_for_seq.py c1_descending_t2_v2 --alpha 0.1
 """
@@ -25,7 +25,7 @@ from PIL import Image
 import torch
 
 
-# ================= 全局路径 & 常量 =================
+# ================= Global paths & constants =================
 
 BASE_ROOT = "/data1_ycao/chua/projects/cdTeacher"
 DATA_RAW_ROOT = os.path.join(BASE_ROOT, "data_raw")
@@ -36,7 +36,7 @@ MODELS_ROOT = os.path.join(BASE_ROOT, "web-viewer", "models")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("[INFO] Using device:", device)
 
-# C3VDv2 给出的 Scaramuzza 鱼眼内参（全序列共享）
+# Scaramuzza fisheye intrinsics provided by C3VDv2 (shared across sequence)
 OMNI_INTRINSICS = {
     "width": 1350,
     "height": 1080,

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # stage_A_build_gt_for_eval.py
 #
-# 根据 ns-render raw-depth 使用的帧，构建「对齐版」GT点云，用于 Stage D 评估。
+# Build "aligned" GT point cloud for Stage D evaluation using frames from ns-render raw-depth.
 #
-# 默认路径约定：
+# Default path convention:
 #   RAW_ROOT      = /data1_ycao/chua/projects/cdTeacher/data_raw/<SEQ>
 #   STAGE_D_ROOT  = /data1_ycao/chua/projects/cdTeacher/outputs/stage_D/<SEQ>
 #
-# 输出：
+# Output:
 #   <STAGE_D_ROOT>/gt_pointcloud_eval_frames.ply
 
 import os
@@ -18,7 +18,7 @@ import torch
 from PIL import Image
 
 # -------------------------
-# 相机内参（C3VDv2 / Olympus CF-HQ190L）
+# Camera intrinsics (C3VDv2 / Olympus CF-HQ190L)
 # -------------------------
 OMNI_INTRINSICS = {
     "width": 1350,
@@ -40,9 +40,9 @@ class OmniCamera(torch.nn.Module):
     """
     Scaramuzza-style omnidirectional camera (pixel -> ray in camera frame).
 
-    坐标系约定:
-      - 像素: u 向右, v 向下
-      - 相机系: +x 向右, +y 向下, +z 沿视线方向
+    Coordinate system convention:
+      - Pixel: u right, v down
+      - Camera frame: +x right, +y down, +z along view direction
     """
 
     def __init__(self, intrinsics):

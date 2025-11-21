@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # stage_D_eval_rawdepth_vs_gt.py
 #
-# 使用 Stage A 的 transforms + Stage D 的 raw-depth 和对齐版 GT 点云，
-# 在 CPU 上计算 NeRF raw-depth vs GT 的 Chamfer 距离（支持多组 alpha）。
+# Use Stage A transforms + Stage D raw-depth and aligned GT point cloud,
+# Calculate Chamfer distance of NeRF raw-depth vs GT on CPU (supports multiple alphas).
 
 import os
 import re
@@ -38,7 +38,7 @@ def load_transforms_json(transforms_path: str):
     cx = meta["cx"]
     cy = meta["cy"]
     frames = meta["frames"]
-    # 按原顺序收集 cam2world
+    # Collect cam2world in original order
     poses_c2w = []
     for fr in frames:
         T = np.array(fr["transform_matrix"], dtype=np.float32)
