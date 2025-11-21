@@ -1,0 +1,62 @@
+{
+  "models_dir": "./models",
+  "num_models": 8,
+  "models": [
+    {
+      "seq": "c1_descending_t2_v2",
+      "kind": "gt",
+      "alpha": null,
+      "label": "c1_descending_t2_v2 (GT full)",
+      "filename": "c1_descending_t2_v2_gt_full.ply"
+    },
+    {
+      "seq": "c1_descending_t2_v2",
+      "kind": "nerf_rawdepth",
+      "alpha": 0.1,
+      "label": "c1_descending_t2_v2 (NeRF raw-depth, \u03b1=0.10 m)",
+      "filename": "c1_descending_t2_v2_nerf_rawdepth_alpha0.10m.ply"
+    },
+    {
+      "seq": "c2_ascending_t1_v1",
+      "kind": "gt",
+      "alpha": null,
+      "label": "c2_ascending_t1_v1 (GT full)",
+      "filename": "c2_ascending_t1_v1_gt_full.ply"
+    },
+    {
+      "seq": "c2_ascending_t1_v1",
+      "kind": "nerf_rawdepth",
+      "alpha": 0.1,
+      "label": "c2_ascending_t1_v1 (NeRF raw-depth, \u03b1=0.10 m)",
+      "filename": "c2_ascending_t1_v1_nerf_rawdepth_alpha0.10m.ply"
+    },
+    {
+      "seq": "c2_rectum_t4_v3",
+      "kind": "gt",
+      "alpha": null,
+      "label": "c2_rectum_t4_v3 (GT full)",
+      "filename": "c2_rectum_t4_v3_gt_full.ply"
+    },
+    {
+      "seq": "c2_rectum_t4_v3",
+      "kind": "nerf_rawdepth",
+      "alpha": 0.1,
+      "label": "c2_rectum_t4_v3 (NeRF raw-depth, \u03b1=0.10 m)",
+      "filename": "c2_rectum_t4_v3_nerf_rawdepth_alpha0.10m.ply"
+    },
+    {
+      "seq": "c2_transverse1_t3_v2",
+      "kind": "gt",
+      "alpha": null,
+      "label": "c2_transverse1_t3_v2 (GT full)",
+      "filename": "c2_transverse1_t3_v2_gt_full.ply"
+    },
+    {
+      "seq": "c2_transverse1_t3_v2",
+      "kind": "nerf_rawdepth",
+      "alpha": 0.1,
+      "label": "c2_transverse1_t3_v2 (NeRF raw-depth, \u03b1=0.10 m)",
+      "filename": "c2_transverse1_t3_v2_nerf_rawdepth_alpha0.10m.ply"
+    }
+  ]
+}
