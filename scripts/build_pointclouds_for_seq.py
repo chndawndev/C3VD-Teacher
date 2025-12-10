@@ -52,26 +52,26 @@ OMNI_INTRINSICS = {
     "e": -1.83e-4,
 }
 
-# NeRF raw-depth → 米 的比例（可通过命令行参数改）
+# Scale from NeRF raw-depth units to meters (tunable via CLI)
 DEFAULT_ALPHA_M_PER_UNIT = 0.1
 
-# GT 点云采样控制
-MAX_POINTS_PER_FRAME_GT = 10000   # 每帧最多采样点，避免显存/内存炸
-MAX_POINTS_TOTAL_GT = 500000      # 全局最大点数，方便浏览器看
+# GT point cloud sampling control
+MAX_POINTS_PER_FRAME_GT = 10000   # Cap per-frame samples to avoid GPU/CPU OOM
+MAX_POINTS_TOTAL_GT = 500000      # Global cap to keep viewer responsive
 
-# NeRF 点云采样控制
+# NeRF point cloud sampling control
 MAX_POINTS_PER_FRAME_NERF = 10000
 MAX_POINTS_TOTAL_NERF = 300000
 
 
-# ================= 一些小工具 =================
+# ================= Small utilities =================
 
 def ensure_dir(path: str):
     os.makedirs(path, exist_ok=True)
 
 
 def write_ply(path: str, points: np.ndarray):
-    """简易 PLY 写入，仅写 XYZ 顶点。points: (N,3) float32"""
+    """Lightweight PLY writer for XYZ vertices only. points: (N,3) float32."""
     N = points.shape[0]
     with open(path, "w") as f:
         f.write("ply\n")
@@ -86,15 +86,15 @@ def write_ply(path: str, points: np.ndarray):
     print(f"[WRITE] Saved PLY with {N} points to {path}")
 
 
-# ================= 鱼眼相机模型（OmniCamera） =================
+# ================= Fisheye camera model (OmniCamera) =================
 
 class OmniCamera(torch.nn.Module):
     """
     Scaramuzza-style omnidirectional camera (pixel -> ray in camera frame).
 
-    坐标系约定:
-      - 像素: u 向右, v 向下
-      - 相机系: +x 向右, +y 向下, +z 沿视线方向
+    Coordinate convention:
+      - Pixel: u to the right, v downward
+      - Camera: +x right, +y down, +z along the viewing direction
     """
     def __init__(self, intrinsics):
         super().__init__()
@@ -124,8 +124,8 @@ class OmniCamera(torch.nn.Module):
 
     def forward(self, u, v):
         """
-        u, v: (...,) 像素坐标，float32
-        返回: (..., 3) 单位方向向量 (x,y,z) in camera frame
+        u, v: (...,) pixel coordinates, float32
+        Returns: (..., 3) unit direction vector (x, y, z) in camera frame
         """
         u = torch.as_tensor(u, dtype=torch.float32, device=self.pol.device)
         v = torch.as_tensor(v, dtype=torch.float32, device=self.pol.device)
@@ -146,13 +146,13 @@ class OmniCamera(torch.nn.Module):
         return dir_norm
 
 
-# ================= 从 pose.txt 读取 cam2world pose =================
+# ================= Load cam2world poses from pose.txt =================
 
 def load_cam2world_poses(raw_root: str) -> torch.Tensor:
     """
-    从 raw_root/pose.txt 读取 4x4 cam2world 矩阵（以米为单位）
-    C3VDv2: 每行 16 个数，先 flatten 再 reshape(4,4)，需要转置。
-    平移原始单位是 mm，需要除以 1000。
+    Read 4x4 cam2world matrices (meters) from raw_root/pose.txt.
+    C3VDv2: each line has 16 values, flatten then reshape(4,4), followed by a transpose.
+    Translation values are in millimeters and must be divided by 1000.
     """
     pose_path = os.path.join(raw_root, "pose.txt")
     if not os.path.isfile(pose_path):
@@ -172,9 +172,9 @@ def load_cam2world_poses(raw_root: str) -> torch.Tensor:
                 )
             vals = np.array(parts, dtype=np.float32)
             mat_raw = vals.reshape(4, 4)
-            T = mat_raw.T  # 转置成标准 cam2world
+            T = mat_raw.T  # Transpose to standard cam2world
 
-            # 平移: mm -> m
+            # Translation: mm -> m
             T[0:3, 3] /= 1000.0
             poses_list.append(T)
 
@@ -183,13 +183,13 @@ def load_cam2world_poses(raw_root: str) -> torch.Tensor:
     return poses_cam2world
 
 
-# ================= 从 depth + occlusion + 鱼眼构建 GT 点云 =================
+# ================= Build GT point cloud from depth + occlusion + fisheye =================
 
 def load_depth_and_mask(raw_root: str, frame_id: int, device: torch.device):
     """
-    读取一帧的 depth 和 occlusion，返回:
-      depth_m: (H,W) float32, 单位 m
-      valid:   (H,W) bool，有效像素掩码
+    Load one frame of depth and occlusion, returning:
+      depth_m: (H,W) float32, in meters
+      valid:   (H,W) bool, valid pixel mask
     """
     fname = f"{frame_id:04d}"
     depth_path = os.path.join(raw_root, "depth", f"{fname}_depth.tiff")
@@ -203,14 +203,14 @@ def load_depth_and_mask(raw_root: str, frame_id: int, device: torch.device):
     depth_img = np.array(Image.open(depth_path))  # uint16
     occ_img   = np.array(Image.open(occ_path))    # uint8
 
-    # torch 不支持 uint16，转为 int32
+    # torch does not support uint16; convert to int32
     depth_raw = torch.from_numpy(depth_img.astype(np.int32)).to(device)
     occ_u8    = torch.from_numpy(occ_img.astype(np.uint8)).to(device)
 
     # 0~65535 -> 0~0.1 m (0~100mm)
     depth_m = depth_raw.to(torch.float32) / 65535.0 * 0.1
 
-    # 有效像素：有深度 & 无 occlusion
+    # Valid pixels: has depth & no occlusion
     valid = (depth_raw > 0) & (occ_u8 == 0)
 
     return depth_m, valid
@@ -218,8 +218,8 @@ def load_depth_and_mask(raw_root: str, frame_id: int, device: torch.device):
 
 def build_gt_pointcloud_for_seq(seq_name: str) -> str:
     """
-    使用全帧 depth + occlusion + pose + 鱼眼相机模型，构建完整 GT 点云，
-    存到 web-viewer/models/<seq>_gt_full.ply
+    Build a full GT point cloud using all frames of depth + occlusion + pose + fisheye model,
+    saved to web-viewer/models/<seq>_gt_full.ply.
     """
     ensure_dir(MODELS_ROOT)
 
@@ -227,20 +227,20 @@ def build_gt_pointcloud_for_seq(seq_name: str) -> str:
     if not os.path.isdir(raw_root):
         raise FileNotFoundError(f"[GT] Raw seq dir not found: {raw_root}")
 
-    # 构建鱼眼相机模型
+    # Build fisheye camera model
     omni_cam = OmniCamera(OMNI_INTRINSICS).to(device)
 
     H = OMNI_INTRINSICS["height"]
     W = OMNI_INTRINSICS["width"]
 
-    # 预计算每个像素的射线方向 (camera frame)
+    # Precompute per-pixel ray directions (camera frame)
     u_coords = torch.arange(W, device=device).view(1, -1).expand(H, W)
     v_coords = torch.arange(H, device=device).view(-1, 1).expand(H, W)
     with torch.no_grad():
         dirs_cam = omni_cam(u_coords, v_coords)  # (H,W,3)
     print("[GT] dirs_cam shape:", dirs_cam.shape)
 
-    # 读取 cam2world pose
+    # Load cam2world poses
     poses_cam2world = load_cam2world_poses(raw_root).to(device)  # (N,4,4)
     num_frames = poses_cam2world.shape[0]
     print(f"[GT] Total frames in pose.txt: {num_frames}")
@@ -256,7 +256,7 @@ def build_gt_pointcloud_for_seq(seq_name: str) -> str:
         depth_z_valid = depth_m[valid_mask]       # (Nv,)
         dirs_valid = dirs_cam[valid_mask]         # (Nv,3)
 
-        dz = dirs_valid[:, 2].clamp(min=1e-6)     # 沿 z 轴分量
+        dz = dirs_valid[:, 2].clamp(min=1e-6)     # z-axis component
         scale = depth_z_valid / dz                # (Nv,)
         pts_cam = dirs_valid * scale.unsqueeze(-1)  # (Nv,3)
 
@@ -292,7 +292,7 @@ def build_gt_pointcloud_for_seq(seq_name: str) -> str:
     return out_path
 
 
-# ================= NeRF raw-depth → 点云 =================
+# ================= NeRF raw-depth → point cloud =================
 
 def build_nerf_pointcloud_for_seq(
     seq_name: str,
@@ -301,9 +301,9 @@ def build_nerf_pointcloud_for_seq(
     max_points_total: int = MAX_POINTS_TOTAL_NERF,
 ) -> str:
     """
-    使用 ns-render dataset --split train+test 的 raw-depth 构建 NeRF 点云。
+    Build a NeRF point cloud using ns-render dataset --split train+test raw-depth outputs.
 
-    假设：
+    Assumes:
       STAGE_A_ROOT/<seq>/transforms.json
       STAGE_D_ROOT/<seq>/train/raw-depth/*.npy.gz
       STAGE_D_ROOT/<seq>/test/raw-depth/*.npy.gz
@@ -335,7 +335,7 @@ def build_nerf_pointcloud_for_seq(
     print(f"[NeRF] transforms: W={W_p}, H={H_p}, fx={fx:.4f}, fy={fy:.4f}, "
           f"cx={cx:.2f}, cy={cy:.2f}, #frames={len(frames_meta)}")
 
-    # 预计算 pinhole 摄像机射线方向
+    # Precompute pinhole camera ray directions
     u_grid, v_grid = np.meshgrid(np.arange(W_p), np.arange(H_p))
     u_grid = u_grid.astype(np.float32)
     v_grid = v_grid.astype(np.float32)
@@ -429,7 +429,7 @@ def build_nerf_pointcloud_for_seq(
     return out_path
 
 
-# ================= CLI 主函数 =================
+# ================= CLI entrypoint =================
 
 def main():
     parser = argparse.ArgumentParser(

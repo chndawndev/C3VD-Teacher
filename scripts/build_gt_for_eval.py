@@ -98,7 +98,7 @@ class OmniCamera(torch.nn.Module):
 
 
 def load_poses_cam2world(pose_path: str) -> torch.Tensor:
-    """读取 pose.txt，返回 (N,4,4) 的 cam2world（单位：米）"""
+    """Read pose.txt and return cam2world matrices (N,4,4) in meters."""
     poses_list = []
     with open(pose_path, "r") as f:
         for line_idx, line in enumerate(f):
@@ -112,7 +112,7 @@ def load_poses_cam2world(pose_path: str) -> torch.Tensor:
                 )
             vals = np.array(parts, dtype=np.float32)
             mat_raw = vals.reshape(4, 4)
-            T = mat_raw.T  # 转置到标准 cam2world
+            T = mat_raw.T  # Transpose into standard cam2world
             T[0:3, 3] /= 1000.0  # mm -> m
             poses_list.append(T)
     poses = torch.from_numpy(np.stack(poses_list, axis=0))  # (N,4,4)
@@ -120,7 +120,7 @@ def load_poses_cam2world(pose_path: str) -> torch.Tensor:
 
 
 def load_depth_and_mask(raw_root: str, frame_id: int, device: torch.device):
-    """加载单帧 GT 深度 & occlusion，返回 depth_m (H,W) 和 valid mask (H,W)"""
+    """Load one GT depth & occlusion frame; return depth_m (H,W) and valid mask (H,W)."""
     fname = f"{frame_id:04d}"
     depth_path = os.path.join(raw_root, "depth", f"{fname}_depth.tiff")
     occ_path = os.path.join(raw_root, "occlusions", f"{fname}_occlusion.png")
@@ -148,7 +148,7 @@ def frame_points_world(
     poses_cam2world: torch.Tensor,
     max_points: int = None,
 ):
-    """返回某帧的世界系点云 (N,3)"""
+    """Return world-frame point cloud (N,3) for one frame."""
     depth_m, valid = load_depth_and_mask(raw_root, frame_id, device)
     if depth_m is None:
         return None
@@ -192,7 +192,7 @@ def write_ply(path, points: np.ndarray):
 
 
 def parse_frame_ids_from_rawdepth(rawdepth_dir: str):
-    """从 test/raw-depth/*.npy.gz 提取帧号"""
+    """Extract frame ids from test/raw-depth/*.npy.gz"""
     files = [
         f for f in os.listdir(rawdepth_dir) if f.endswith(".npy.gz") and not f.startswith(".")
     ]
@@ -201,7 +201,7 @@ def parse_frame_ids_from_rawdepth(rawdepth_dir: str):
     files = sorted(files)
     frame_ids = []
     for f in files:
-        # 假设名字形如 0010.npy.gz
+        # Assume names like 0010.npy.gz
         m = re.search(r"(\d+)", f)
         if m:
             frame_ids.append(int(m.group(1)))
@@ -269,9 +269,9 @@ def main():
         dirs_cam = omni_cam(u_coords, v_coords)  # (H,W,3)
     print("[INFO] dirs_cam:", dirs_cam.shape)
 
-    # 从 raw-depth 名字解析出真正参与评估的帧
+    # Parse frame ids that actually appear in raw-depth
     frame_ids = parse_frame_ids_from_rawdepth(rawdepth_dir)
-    # 安全裁剪一下，避免超出 pose 范围
+    # Clip safely to avoid exceeding pose count
     frame_ids = [fid for fid in frame_ids if fid < num_frames]
     print(f"[INFO] Using {len(frame_ids)} eval frames:", frame_ids[:10], "..." if len(frame_ids) > 10 else "")
 

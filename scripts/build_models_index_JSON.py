@@ -60,7 +60,7 @@ def parse_model_filename(filename: str):
             "label": f"{seq} (NeRF raw-depth, α={alpha:.2f} m)"
         }
 
-    # 3) 其它未知命名，也保留，但打个 "other"
+    # 3) Any other naming: keep it but tag as "other"
     return {
         "seq": name,
         "kind": "other",

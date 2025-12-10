@@ -37,24 +37,39 @@ scene.add(dirLight);
 
 const loader = new PLYLoader();
 
-// Currently loaded model
-let currentPoints = null;
-let bboxGlobal = new THREE.Box3();
-let bboxInitialized = false;
+// Currently loaded models (up to 2)
+const loadedModels = [null, null];
+const modelColors = [0x99aabb, 0xffaa88]; // Blue-ish for #1, Red-ish for #2
 
-function clearCurrentPoints() {
-  if (currentPoints) {
-    scene.remove(currentPoints);
-    currentPoints.geometry.dispose();
-    currentPoints.material.dispose();
-    currentPoints = null;
-  }
-  bboxInitialized = false;
+let bboxGlobal = new THREE.Box3();
+
+function updateGlobalBBox() {
   bboxGlobal.makeEmpty();
+  let empty = true;
+  
+  loadedModels.forEach(pts => {
+    if (pts) {
+      if (!pts.geometry.boundingBox) pts.geometry.computeBoundingBox();
+      bboxGlobal.union(pts.geometry.boundingBox);
+      empty = false;
+    }
+  });
+  
+  return !empty;
+}
+
+function clearModel(index) {
+  if (loadedModels[index]) {
+    scene.remove(loadedModels[index]);
+    loadedModels[index].geometry.dispose();
+    loadedModels[index].material.dispose();
+    loadedModels[index] = null;
+  }
+  updateGlobalBBox();
 }
 
 function updateCameraToFitBox() {
-  if (!bboxInitialized) return;
+  if (!updateGlobalBBox()) return;
 
   const size = new THREE.Vector3();
   const center = new THREE.Vector3();
@@ -73,45 +88,43 @@ function updateCameraToFitBox() {
   controls.update();
 }
 
-function createPointsFromGeometry(geometry) {
+function createPointsFromGeometry(geometry, color) {
   geometry.computeBoundingBox();
 
   const material = new THREE.PointsMaterial({
     size: 0.0015,
-    color: new THREE.Color(0x99aabb),
+    color: new THREE.Color(color),
     transparent: true,
     opacity: 0.9,
   });
 
   const points = new THREE.Points(geometry, material);
 
-  const attr = geometry.getAttribute("position");
-  const box = new THREE.Box3().setFromBufferAttribute(attr);
-  if (!bboxInitialized) {
-    bboxGlobal.copy(box);
-    bboxInitialized = true;
-  } else {
-    bboxGlobal.union(box);
-  }
+  // Add axes helper to the model
+  const axesHelper = new THREE.AxesHelper(0.05); // Size 0.05m
+  points.add(axesHelper);
 
   return points;
 }
 
-function loadModel(filename) {
+function loadModel(filename, index) {
+  clearModel(index);
   if (!filename) return;
-  clearCurrentPoints();
 
   const fullPath = `./models/${filename}`;
-  console.log("Loading PLY:", fullPath);
+  console.log(`Loading PLY [${index}]:`, fullPath);
 
   loader.load(
     fullPath,
     (geometry) => {
-      geometry.center(); // Center the model near the origin
-      currentPoints = createPointsFromGeometry(geometry);
-      scene.add(currentPoints);
+      // geometry.center(); // Removed to allow alignment comparison
+      const points = createPointsFromGeometry(geometry, modelColors[index]);
+      loadedModels[index] = points;
+      scene.add(points);
+      
+      updateGlobalBBox();
       updateCameraToFitBox();
-      console.log("Loaded:", filename);
+      console.log(`Loaded [${index}]:`, filename);
     },
     undefined,
     (err) => {
@@ -123,7 +136,9 @@ function loadModel(filename) {
 // Read file list from index.json and populate the dropdown
 async function initModelList() {
   console.log("Initializing model list...");
-  const select = document.getElementById("model-select");
+  const select1 = document.getElementById("model-select-1");
+  const select2 = document.getElementById("model-select-2");
+  
   try {
     const resp = await fetch("./models/index.json");
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -132,46 +147,32 @@ async function initModelList() {
     console.log("Loaded models/index.json:", data);
     const models = data.models;
 
-    select.innerHTML = "";
-    if (!models || !models.length) {
-      const opt = document.createElement("option");
-      opt.value = "";
-      opt.textContent = "-- no PLY files found --";
-      select.appendChild(opt);
-      return;
-    }
+    const populate = (sel, idx) => {
+      sel.innerHTML = "";
+      const def = document.createElement("option");
+      def.value = "";
+      def.textContent = idx === 0 ? "-- select model 1 --" : "-- select model 2 (optional) --";
+      sel.appendChild(def);
 
-    // Insert a "Please select" option by default
-    const opt0 = document.createElement("option");
-    opt0.value = "";
-    opt0.textContent = "-- select a PLY model --";
-    select.appendChild(opt0);
-
-    for (const m of models) {
-      const opt = document.createElement("option");
-      opt.value = m.filename;
-      opt.textContent = m.label || m.filename;
-      select.appendChild(opt);
-    }
-
-    // Load model when selection changes
-    select.addEventListener("change", () => {
-      const fname = select.value;
-      if (fname) {
-        loadModel(fname);
+      if (models) {
+        for (const m of models) {
+          const opt = document.createElement("option");
+          opt.value = m.filename;
+          opt.textContent = m.label || m.filename;
+          sel.appendChild(opt);
+        }
       }
-    });
+      
+      sel.addEventListener("change", () => {
+        loadModel(sel.value, idx);
+      });
+    };
 
-    // Optionally select the first model by default:
-    // select.value = files[0];
-    // loadModel(files[0]);
+    populate(select1, 0);
+    populate(select2, 1);
+
   } catch (e) {
     console.error("Failed to load models/index.json:", e);
-    select.innerHTML = "";
-    const opt = document.createElement("option");
-    opt.value = "";
-    opt.textContent = "-- failed to load models/index.json --";
-    select.appendChild(opt);
   }
 }
 

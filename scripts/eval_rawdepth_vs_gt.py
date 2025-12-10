@@ -48,7 +48,7 @@ def load_transforms_json(transforms_path: str):
 
 
 def build_pinhole_dirs(W, H, fx, fy, cx, cy):
-    """构建 pinhole 相机下每个像素的单位方向 (H,W,3)"""
+    """Build unit ray directions per pixel for a pinhole camera (H,W,3)."""
     u = np.arange(W, dtype=np.float32)
     v = np.arange(H, dtype=np.float32)
     uu, vv = np.meshgrid(u, v)  # (H,W)
@@ -85,7 +85,7 @@ def parse_frame_ids_from_rawdepth(rawdepth_dir: str):
 
 
 def load_raw_depth_frame(path: str):
-    """读取一个 raw-depth npy.gz, 返回 (H,W) float32"""
+    """Load one raw-depth npy.gz file and return (H,W) float32."""
     with gzip.open(path, "rb") as f:
         d = np.load(f, allow_pickle=True)
     # d: (H,W,1)
@@ -103,7 +103,7 @@ def build_nerf_points_from_rawdepth(
     alpha: float,
     max_points_per_frame: int = 10000,
 ):
-    """从 raw-depth (NeRF) 构建世界坐标点云 (N,3)"""
+    """Build a world-space point cloud (N,3) from NeRF raw-depth."""
     H, W, _ = dirs_cam_pinhole.shape
     all_pts = []
 
@@ -118,13 +118,13 @@ def build_nerf_points_from_rawdepth(
                 f"got {depth_raw.shape}, expected {(H,W)}"
             )
 
-        # 有效深度：>0 && 非 NaN
+        # Valid depth: >0 && not NaN
         valid = np.isfinite(depth_raw) & (depth_raw > 0)
         if not np.any(valid):
             print(f"[WARN] No valid depth in frame {fid:04d}, skip.")
             continue
 
-        d_valid = depth_raw[valid] * alpha  # 变成米
+        d_valid = depth_raw[valid] * alpha  # convert to meters
         dirs_valid = dirs_cam_pinhole[valid]  # (Nv,3)
         pts_cam = dirs_valid * d_valid[:, None]  # (Nv,3)
 
@@ -152,7 +152,7 @@ def build_nerf_points_from_rawdepth(
 
 
 def chamfer_stats(pts_a: np.ndarray, pts_b: np.ndarray, label_a="A", label_b="B"):
-    """用 KDTree 计算双向最近邻误差并打印统计"""
+    """Compute bidirectional nearest-neighbor errors with KDTree and print stats."""
     print("Building KD-trees...")
     tree_a = KDTree(pts_a)
     tree_b = KDTree(pts_b)
@@ -241,23 +241,23 @@ def main():
     assert os.path.isfile(gt_ply_path), f"GT PLY not found: {gt_ply_path}"
     assert os.path.isdir(rawdepth_dir), f"raw-depth dir not found: {rawdepth_dir}"
 
-    # 1. 加载 GT 点云
+    # 1. Load GT point cloud
     gt_pts = load_gt_pointcloud(gt_ply_path, max_points=args.max_gt_points)
 
-    # 2. 加载 transforms.json（pinhole 相机参数 + poses）
+    # 2. Load transforms.json (pinhole intrinsics + poses)
     (W, H, fx, fy, cx, cy), poses_c2w = load_transforms_json(transforms_path)
     print(f"[INFO] Pinhole intrinsics: W={W}, H={H}, fx={fx}, fy={fy}, cx={cx}, cy={cy}")
     print(f"[INFO] Loaded {poses_c2w.shape[0]} camera poses from transforms.json")
 
-    # 3. 构建 pinhole 射线方向
+    # 3. Precompute pinhole ray directions
     dirs_cam_pinhole = build_pinhole_dirs(W, H, fx, fy, cx, cy)  # (H,W,3)
 
-    # 4. raw-depth 使用的帧（确保和 Stage A 的 frame index 对齐）
+    # 4. raw-depth frames used (aligned with Stage A frame indices)
     frame_ids, fname_map = parse_frame_ids_from_rawdepth(rawdepth_dir)
     frame_ids = [fid for fid in frame_ids if fid < poses_c2w.shape[0]]
     print(f"[INFO] Found {len(frame_ids)} raw-depth frames:", frame_ids[:10], "..." if len(frame_ids) > 10 else "")
 
-    # 对 GT/NeRF 再做一次统一 subsample（避免 KDTree 太大）
+    # Apply a unified subsample to GT/NeRF to keep KDTree sizes manageable
     if gt_pts.shape[0] > args.max_gt_points:
         idx_gt = np.random.choice(gt_pts.shape[0], args.max_gt_points, replace=False)
         gt_eval = gt_pts[idx_gt]
@@ -265,7 +265,7 @@ def main():
         gt_eval = gt_pts
     print(f"[INFO] GT used for KDTree: {gt_eval.shape}")
 
-    # 5. 对每个 alpha 做一次完整评估
+    # 5. Run a full evaluation for each alpha
     results = []
     for alpha in args.alphas:
         print("\n" + "=" * 20 + f" α = {alpha} m " + "=" * 20)

@@ -56,7 +56,7 @@ class OmniCamera(torch.nn.Module):
         self.d = intrinsics["d"]
         self.e = intrinsics["e"]
 
-        # 多项式系数 pol(r) = a0 + a1*r + ...
+        # Polynomial coefficients pol(r) = a0 + a1*r + ...
         self.register_buffer(
             "pol",
             torch.tensor(
@@ -71,24 +71,24 @@ class OmniCamera(torch.nn.Module):
             ),
         )
 
-        # 预算 affine 矩阵的逆: [x';y'] = A^{-1} * ([u-cx; v-cy])
+        # Pre-compute inverse affine matrix: [x';y'] = A^{-1} * ([u-cx; v-cy])
         A = torch.tensor([[self.c, self.d], [self.e, 1.0]], dtype=torch.float32)
         A_inv = torch.inverse(A)
         self.register_buffer("A_inv", A_inv)
 
     def forward(self, u, v):
         """
-        u, v: (...,) 像素坐标 (float32)，可以是任意 shape
-        返回: (..., 3) 单位方向向量 (x,y,z) in camera frame
+        u, v: (...,) pixel coordinates (float32), any shape
+        Returns: (..., 3) unit direction vector (x,y,z) in camera frame
         """
         u = torch.as_tensor(u, dtype=torch.float32, device=self.pol.device)
         v = torch.as_tensor(v, dtype=torch.float32, device=self.pol.device)
 
-        # 平移到主点
+        # Shift to principal point
         x_img = u - self.cx
         y_img = v - self.cy
 
-        # 逆 affine 校正
+        # Inverse affine correction
         x_prime = self.A_inv[0, 0] * x_img + self.A_inv[0, 1] * y_img
         y_prime = self.A_inv[1, 0] * x_img + self.A_inv[1, 1] * y_img
 
@@ -128,10 +128,10 @@ def load_poses_cam2world(raw_root: str) -> torch.Tensor:
                 )
 
             vals = np.array(parts, dtype=np.float32)
-            mat_raw = vals.reshape(4, 4)  # 这是 T^T 的形状
-            T = mat_raw.T  # 转置成标准 T_cam2world
+            mat_raw = vals.reshape(4, 4)  # This is shaped as T^T
+            T = mat_raw.T  # Transpose to standard T_cam2world
 
-            # 把平移从 mm → m
+            # Convert translation from mm → m
             T[0:3, 3] /= 1000.0
 
             poses_list.append(T)
@@ -162,7 +162,7 @@ def build_pinhole_intrinsics(W_p=960, H_p=720, fov_deg=90.0):
 
 
 def precompute_fisheye_to_pinhole_maps(omni_cam: OmniCamera, pinhole_intrinsics, device):
-    """生成 fisheye 像素 → pinhole 像素坐标 (u_p_map, v_p_map)"""
+    """Generate fisheye pixel -> pinhole pixel maps (u_p_map, v_p_map)."""
     H_f = omni_cam.height
     W_f = omni_cam.width
     fx = pinhole_intrinsics["fx"]
@@ -196,7 +196,7 @@ def fisheye_to_pinhole_rgb(
     """
     rgb_fisheye: (H_f, W_f, 3), float32, [0,1]
     u_p_map, v_p_map: (H_f, W_f)
-    返回:
+    Returns:
       rgb_pinhole: (H_p, W_p, 3)
     """
     device = rgb_fisheye.device
@@ -205,12 +205,12 @@ def fisheye_to_pinhole_rgb(
     u_p_map = u_p_map.to(device)
     v_p_map = v_p_map.to(device)
 
-    # 展平成一维
+    # Flatten to 1D
     u_flat = u_p_map.reshape(-1)
     v_flat = v_p_map.reshape(-1)
     rgb_flat = rgb_fisheye.reshape(-1, 3)
 
-    # 只保留落在 pinhole 范围附近的
+    # Keep only pixels landing near the pinhole bounds
     valid = (u_flat >= -1) & (u_flat <= W_p) & (v_flat >= -1) & (v_flat <= H_p)
     u_flat = u_flat[valid]
     v_flat = v_flat[valid]
@@ -268,7 +268,7 @@ def load_rgb_frame(raw_root: str, frame_id: int, device):
 
 
 # -------------------------
-# 写 transforms.json （nerfstudio-data）
+# Write transforms.json (nerfstudio-data)
 # -------------------------
 
 def write_transforms_json(poses_cam2world: torch.Tensor, out_root: str, pinhole_intrinsics):
@@ -313,7 +313,7 @@ def write_transforms_json(poses_cam2world: torch.Tensor, out_root: str, pinhole_
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seq", type=str, required=True,
-                        help="序列名，例如 c1_descending_t2_v2")
+                        help="Sequence name, e.g. c1_descending_t2_v2")
     parser.add_argument(
         "--data-raw-root",
         type=str,
@@ -343,16 +343,16 @@ def main():
     print("[StageA] RAW_ROOT:", raw_root)
     print("[StageA] OUT_ROOT:", out_root)
 
-    # 保存 omni intrinsics
+    # Save omni intrinsics
     with open(os.path.join(out_root, "camera_omni.json"), "w") as f:
         json.dump(OMNI_INTRINSICS, f, indent=2)
 
-    # 1. 加载 pose
+    # 1. Load poses
     poses_cam2world = load_poses_cam2world(raw_root)
     num_frames = poses_cam2world.shape[0]
     print("[StageA] Loaded poses:", poses_cam2world.shape)
 
-    # 2. 初始化相机 + 预计算投影映射
+    # 2. Initialize camera + precompute projection map
     omni_cam = OmniCamera(OMNI_INTRINSICS).to(device)
     pinhole_intrinsics = build_pinhole_intrinsics(
         W_p=args.width, H_p=args.height, fov_deg=args.fov_deg
@@ -373,7 +373,7 @@ def main():
         v_p_map.max().item(),
     )
 
-    # 3. 展平所有 RGB 帧
+    # 3. Undistort all RGB frames
     for fid in tqdm(range(num_frames), desc="[StageA] Undistorting frames"):
         rgb_fisheye = load_rgb_frame(raw_root, fid, device)
         rgb_pinhole = fisheye_to_pinhole_rgb(
@@ -386,7 +386,7 @@ def main():
         out_path = os.path.join(undist_rgb_root, f"{fid:04d}.png")
         img_out.save(out_path)
 
-    # 4. 写 transforms.json
+    # 4. Write transforms.json
     write_transforms_json(poses_cam2world, out_root, pinhole_intrinsics)
 
     print("[StageA] Done for sequence:", args.seq)

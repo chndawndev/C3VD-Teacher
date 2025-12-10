@@ -39,7 +39,7 @@
       border: 1px solid rgba(255, 255, 255, 0.08);
       font-size: 13px;
       z-index: 10;
-      max-width: 260px;
+      /* max-width: 260px; */
     }
 
     #ui-panel h1 {
@@ -82,9 +82,15 @@
   <div id="ui-panel">
     <h1>C3VDv2 Web Viewer</h1>
     <details open>
-      <summary>Models (PLY)</summary>
-      <select id="model-select">
+      <summary>Model 1 (PLY)</summary>
+      <select id="model-select-1">
         <option value="">-- loading models... --</option>
+      </select>
+    </details>
+    <details open>
+      <summary>Model 2 (PLY)</summary>
+      <select id="model-select-2">
+        <option value="">-- select to compare --</option>
       </select>
     </details>
     <div id="hint">

@@ -1,6 +1,6 @@
 {
-  "models_dir": "./models",
-  "num_models": 8,
+  "models_dir": "/data1_ycao/chua/projects/cdTeacher/web-viewer/models",
+  "num_models": 18,
   "models": [
     {
       "seq": "c1_descending_t2_v2",
@@ -31,6 +31,20 @@
       "filename": "c2_ascending_t1_v1_nerf_rawdepth_alpha0.10m.ply"
     },
     {
+      "seq": "c2_physical_albedo",
+      "kind": "other",
+      "alpha": null,
+      "label": "c2_physical_albedo",
+      "filename": "c2_physical_albedo.ply"
+    },
+    {
+      "seq": "c2_rectum_albedo_cpu_final",
+      "kind": "other",
+      "alpha": null,
+      "label": "c2_rectum_albedo_cpu_final",
+      "filename": "c2_rectum_albedo_cpu_final.ply"
+    },
+    {
       "seq": "c2_rectum_t4_v3",
       "kind": "gt",
       "alpha": null,
@@ -57,6 +71,62 @@
       "alpha": 0.1,
       "label": "c2_transverse1_t3_v2 (NeRF raw-depth, \u03b1=0.10 m)",
       "filename": "c2_transverse1_t3_v2_nerf_rawdepth_alpha0.10m.ply"
+    },
+    {
+      "seq": "c2_v2_albedo",
+      "kind": "other",
+      "alpha": null,
+      "label": "c2_v2_albedo",
+      "filename": "c2_v2_albedo.ply"
+    },
+    {
+      "seq": "c2_v3_albedo_final",
+      "kind": "other",
+      "alpha": null,
+      "label": "c2_v3_albedo_final",
+      "filename": "c2_v3_albedo_final.ply"
+    },
+    {
+      "seq": "debug_gt_cloud",
+      "kind": "other",
+      "alpha": null,
+      "label": "debug_gt_cloud",
+      "filename": "debug_gt_cloud.ply"
+    },
+    {
+      "seq": "final_albedo_cloud_v2",
+      "kind": "other",
+      "alpha": null,
+      "label": "final_albedo_cloud_v2",
+      "filename": "final_albedo_cloud_v2.ply"
+    },
+    {
+      "seq": "mesh_final_aligned",
+      "kind": "other",
+      "alpha": null,
+      "label": "mesh_final_aligned",
+      "filename": "mesh_final_aligned.ply"
+    },
+    {
+      "seq": "mesh_icp_corrected",
+      "kind": "other",
+      "alpha": null,
+      "label": "mesh_icp_corrected",
+      "filename": "mesh_icp_corrected.ply"
+    },
+    {
+      "seq": "mesh_iter_20000",
+      "kind": "other",
+      "alpha": null,
+      "label": "mesh_iter_20000",
+      "filename": "mesh_iter_20000.ply"
+    },
+    {
+      "seq": "mesh_iter_20000_clean",
+      "kind": "other",
+      "alpha": null,
+      "label": "mesh_iter_20000_clean",
+      "filename": "mesh_iter_20000_clean.ply"
     }
   ]
 }
