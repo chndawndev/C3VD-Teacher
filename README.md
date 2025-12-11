@@ -1,5 +1,6 @@
 # CDTeacher: A Geometry-Centric 3D Reconstruction Pipeline for Fisheye Colonoscopy Videos (C3VDv2)
 
+Project repo: https://github.com/chndawndev/C3VD-Teacher
 CDTeacher is a geometry-centric benchmarking pipeline for **3D reconstruction from fisheye colonoscopy videos**, built on top of the **C3VDv2 dataset**.
 
 The pipeline supports:
